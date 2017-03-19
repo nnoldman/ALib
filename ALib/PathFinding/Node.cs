@@ -8,8 +8,9 @@ namespace ALib {
 namespace AStar {
 public enum VistState {
     None,
-    Opened,
-    Close,
+    Opened=1<<0,
+    Close=1<< 1 | Opened,
+    Optimized = 1 << 2 | Close,
 }
 
 public enum NodeFlag {
@@ -17,24 +18,41 @@ public enum NodeFlag {
     Block = 1,
 }
 
-public class Node {
+public class Node:IComparable {
     public int x;
     public int y;
     public int state;
     public int g;
     public int h;
     public int f;
+    public int index {
+        get {
+            return index_;
+        }
+        internal set {
+            index_ = value;
+        }
+    }
+
+    private int index_;
 
     public VistState viststate = VistState.None;
 
     public bool closed {
         get {
-            return viststate == VistState.Close;
+            return ((int)viststate & (int)VistState.Close) > 0;
+            //return viststate.HasFlag(VistState.Close);
         }
     }
     public bool opened {
         get {
-            return viststate == VistState.Opened;
+            return viststate.HasFlag(VistState.Opened);
+        }
+    }
+
+    public bool blocked {
+        get {
+            return state == (int)NodeFlag.Block;
         }
     }
 
@@ -48,9 +66,6 @@ public class Node {
         parent = null;
     }
 
-    public bool IsBlock() {
-        return state == (int)NodeFlag.Block;
-    }
 
     public bool Is(int x, int y) {
         return this.x == x && this.y == y;
@@ -66,6 +81,19 @@ public class Node {
 
     public override string ToString() {
         return string.Format("state:{0},x:{1},y:{2}", state, x, y);
+    }
+
+    public int CompareTo(object obj) {
+        return CompareTo((Node)obj);
+    }
+
+    public int CompareTo(Node other) {
+        if (f > other.f)
+            return 1;
+        else if (f < other.f)
+            return -1;
+        else
+            return 0;
     }
 }
 }

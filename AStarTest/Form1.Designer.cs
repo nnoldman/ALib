@@ -24,6 +24,7 @@ partial class Form1 {
     /// </summary>
     private void InitializeComponent() {
         this.panel1 = new System.Windows.Forms.Panel();
+        this.checkBox1 = new System.Windows.Forms.CheckBox();
         this.find = new System.Windows.Forms.Button();
         this.generate_map = new System.Windows.Forms.Button();
         this.findWindow1 = new AStarTest.FindWindow();
@@ -32,6 +33,7 @@ partial class Form1 {
         //
         // panel1
         //
+        this.panel1.Controls.Add(this.checkBox1);
         this.panel1.Controls.Add(this.find);
         this.panel1.Controls.Add(this.generate_map);
         this.panel1.Dock = System.Windows.Forms.DockStyle.Left;
@@ -39,6 +41,16 @@ partial class Form1 {
         this.panel1.Name = "panel1";
         this.panel1.Size = new System.Drawing.Size(292, 693);
         this.panel1.TabIndex = 0;
+        //
+        // checkBox1
+        //
+        this.checkBox1.AutoSize = true;
+        this.checkBox1.Location = new System.Drawing.Point(36, 116);
+        this.checkBox1.Name = "checkBox1";
+        this.checkBox1.Size = new System.Drawing.Size(72, 16);
+        this.checkBox1.TabIndex = 2;
+        this.checkBox1.Text = "优化路径";
+        this.checkBox1.UseVisualStyleBackColor = true;
         //
         // find
         //
@@ -80,7 +92,9 @@ partial class Form1 {
         this.Controls.Add(this.panel1);
         this.Name = "Form1";
         this.Text = "Form1";
+        this.WindowState = System.Windows.Forms.FormWindowState.Maximized;
         this.panel1.ResumeLayout(false);
+        this.panel1.PerformLayout();
         this.ResumeLayout(false);
         this.PerformLayout();
 
@@ -92,6 +106,7 @@ partial class Form1 {
     private System.Windows.Forms.Button generate_map;
     private FindWindow findWindow1;
     private System.Windows.Forms.Button find;
+    private System.Windows.Forms.CheckBox checkBox1;
 }
 }
 

@@ -7,17 +7,37 @@ using System.Diagnostics;
 
 namespace ALib {
 namespace AStar {
+internal class OpenNodeComparer : IComparer<Node> {
+    int IComparer<Node>.Compare(Node x, Node y) {
+        if (x.f > y.f)
+            return 1;
+        if (x.f < y.f)
+            return -1;
+        if (x.index > y.index)
+            return -1;
+        if (x.index < y.index)
+            return 1;
+        return 0;
+    }
+}
 public class Finder {
     private Node[,] mapdata_;
     private int width_ = 0;
     private int height_ = 0;
-    private List<Node> openlist_;
-    private List<Node> closelist_;
+    private SortedSet<Node> openlist_;
+    private HashSet<Node> closelist_;
 
     private Node goal_;
+    private Node start_;
     private List<Node> path_;
 
-    public bool Invlid {
+    public int node_count {
+        get {
+            return width_ * height_;
+        }
+    }
+
+    public bool invlid {
         get {
             return mapdata_ != null;
         }
@@ -29,47 +49,50 @@ public class Finder {
         }
     }
 
+    public bool optimized = false;
+
 
     public bool SetMap(int[,] data) {
         if (data == null)
             return false;
 
-        width_ = data.GetLength(0);
-        if (width_ == 0)
-            return false;
-
-        height_ = data.GetLength(1);
+        height_ = data.GetLength(0);
         if (height_ == 0)
             return false;
 
-        mapdata_ = new Node[width_, height_];
+        width_ = data.GetLength(1);
+        if (width_ == 0)
+            return false;
+
+        mapdata_ = new Node[height_, width_];
         path_ = new List<Node>(width_ * height_);
 
         for (int i = 0; i < width_; ++i) {
             for (int j = 0; j < height_; ++j) {
                 var node = new Node();
-                mapdata_[i, j] = node;
+                mapdata_[j, i] = node;
                 node.x = i;
                 node.y = j;
-                node.state = data[i, j];
+                node.index = j * width_ + i;
+                node.state = data[j, i];
             }
         }
 
-        openlist_ = new List<Node>(width_ * height_);
-        closelist_ = new List<Node>(width_ * height_);
+        openlist_ = new SortedSet<Node>(new OpenNodeComparer());
+        closelist_ = new HashSet<Node>();
         return true;
     }
 
-    public bool IsBlock(int x, int y) {
-        return mapdata_[x, y].state == (int)NodeFlag.Block;
+    public bool IsBlock(int col, int row) {
+        return mapdata_[row, col].state == (int)NodeFlag.Block;
     }
 
-    bool InvalidIndex(int x, int y) {
-        return x >= 0 && x < width_ && y >= 0 && y < height_;
+    bool InvalidIndex(int col, int row) {
+        return col >= 0 && col < width_ && row >= 0 && row < height_;
     }
 
-    Node GetNode(int x, int y) {
-        return mapdata_[x, y];
+    public Node GetNode(int col, int row) {
+        return mapdata_[row, col];
     }
 
     public bool Find(int x0, int y0, int x1, int y1) {
@@ -81,8 +104,14 @@ public class Finder {
             current = GetBestFromOpenList();
             if (current == null)
                 break;
-            ProcessNeigbhors(current);
-        } while (!current.Equals(goal_));
+            if (current.Equals(goal_))
+                break;
+            if (!ProcessNeigbhors(current))
+                break;
+        } while (true);
+
+        if (goal_.parent != null)
+            current = goal_;
 
         if (current != null && current.Equals(goal_)) {
             GeneratePath(current);
@@ -91,27 +120,9 @@ public class Finder {
         return false;
     }
 
-    const int G0 = 1000;
-    const int G1 = 1414;
 
-    struct Point {
-        public int x;
-        public int y;
-        public int g;
-    }
 
-    Point[] Neigbhors = {
-        new Point() {x = -1, y = -1, g = G1},
-        new Point() {x = 0, y = -1, g = G0},
-        new Point() {x = 1, y = -1, g = G1},
 
-        new Point() {x = -1, y = 0, g = G0},
-        new Point() {x = 1, y = 0, g = G0 },
-
-        new Point() {x = -1, y = 1, g = G1 },
-        new Point() {x = 0, y = 1, g = G0},
-        new Point() {x = 1, y = 1, g = G1},
-    };
 
     bool Ready(int x0, int y0, int x1, int y1) {
         if (!InvalidIndex(x0, y0) || !InvalidIndex(x1, y1))
@@ -121,7 +132,7 @@ public class Finder {
 
         for (int i = 0; i < width_; ++i) {
             for (int j = 0; j < height_; ++j) {
-                var node = mapdata_[i, j];
+                var node = mapdata_[j, i];
                 node.Clear();
             }
         }
@@ -129,81 +140,137 @@ public class Finder {
         openlist_.Clear();
         closelist_.Clear();
 
-        var start = GetNode(x0, y0);
+        start_ = GetNode(x0, y0);
         goal_ = GetNode(x1, y1);
 
-        start.h = GetH(start);
-        start.SetCost();
-        start.viststate = VistState.Opened;
-        openlist_.Add(start);
+        start_.h = GetH(start_);
+        start_.SetCost();
+        start_.viststate = VistState.Opened;
+        openlist_.Add(start_);
 
         return true;
     }
 
-    void ProcessNeigbhors(Node current) {
+    const int G0 = 10;
+    const int G1 = 14;
+
+    struct Point {
+        public int x;
+        public int y;
+        public int g;
+    }
+
+    static Point[] sNeigbhors = {
+        new Point() {y = -1, x = -1, g = G1},
+        new Point() {y = -1, x = 0, g = G0},
+        new Point() {y = -1, x = 1, g = G1},
+
+        new Point() {y = 0, x = -1, g = G0},
+        new Point() {y = 0, x = 1, g = G0 },
+
+        new Point() {y = 1, x = -1, g = G1 },
+        new Point() {y = 1, x = 0, g = G0},
+        new Point() {y = 1, x = 1, g = G1},
+    };
+
+    bool ProcessNeigbhors(Node current) {
+
         int parentx = current.x;
         int parenty = current.y;
 
-        for(int i = 0; i < 8; ++i) {
-            int x = parentx + Neigbhors[i].x;
-            int y = parenty + Neigbhors[i].y;
-            if (!InvalidIndex(x, y))
+        for (int i = 0; i < 8; ++i) {
+            int x = parentx + sNeigbhors[i].x;
+            int y = parenty + sNeigbhors[i].y;
+            if (!InvalidIndex(x,y))
                 continue;
-            Node node = GetNode(x, y);
+            Node node = GetNode(x,y);
             if (node.closed)
                 continue;
             if (node.opened)
                 continue;
-            if (node.IsBlock()) {
+            if (node.blocked) {
                 node.viststate = VistState.Close;
                 closelist_.Add(node);
                 continue;
             }
 
             node.parent = current;
-            node.g = current.g + Neigbhors[i].g;
+            node.g = current.g + sNeigbhors[i].g;
             node.h = GetH(node);
             node.SetCost();
             node.viststate = VistState.Opened;
             openlist_.Add(node);
+
+            //if (node.Equals(goal_)) {
+            //    return false;
+            //}
         }
+        return true;
     }
 
     int GetH(Node node) {
         //return 0;
-        return (int)Math.Sqrt((node.x - goal_.x) * (node.x - goal_.x) + (node.y - goal_.y) * (node.y - goal_.y)) * 10;
+        return (int)(Math.Sqrt((node.x - goal_.x) * (node.x - goal_.x) + (node.y - goal_.y) * (node.y - goal_.y)) * 9.5f);
     }
 
     Node GetBestFromOpenList() {
         Node ret = null;
         if (openlist_.Count > 0) {
-            int mincost = int.MaxValue;
-            int index = -1;
-            for (int i = 0; i < openlist_.Count; ++i) {
-                int cost = openlist_[i].f;
-                if (cost < mincost) {
-                    mincost = cost;
-                    index = i;
+            ret = openlist_.Min;
+            ret.viststate = VistState.Close;
+            //Debug.Assert(!closelist_.Contains(ret));
+            closelist_.Add(ret);
+            openlist_.Remove(ret);
+        }
+        return ret;
+    }
+
+
+    Node GetBestNodeFromVisited(Node current) {
+        int parentx = current.x;
+        int parenty = current.y;
+        Node min_g_node = null;
+        int minG = int.MaxValue;
+        int inverseG = int.MaxValue;
+
+        for (int i = 0; i < 8; ++i) {
+            int x = parentx + sNeigbhors[i].x;
+            int y = parenty + sNeigbhors[i].y;
+            if (!InvalidIndex(x, y))
+                continue;
+            Node node = GetNode(x, y);
+            if(((int)node.viststate & (int)VistState.Opened) > 0 && node.viststate != VistState.Optimized&&!node.blocked) {
+                inverseG = node.g + node.f+sNeigbhors[i].g;
+                //;
+                if (inverseG < minG) {
+                    min_g_node = node;
+                    minG = inverseG;
                 }
             }
-            if(index != -1) {
-                ret = openlist_[index];
-                ret.viststate = VistState.Close;
-                closelist_.Add(ret);
-                openlist_.RemoveAt(index);
-            }
+            node.viststate = VistState.Optimized;
         }
-
-        return ret;
+        return min_g_node;
     }
 
     void GeneratePath(Node current) {
         path_.Clear();
-        while (current != null) {
-            path_.Add(current);
-            current = current.parent;
+        if(optimized) {
+            while (!path.Contains(current)) {
+                path_.Add(current);
+                if (current.Equals(start_))
+                    break;
+                current = GetBestNodeFromVisited(current);
+            }
+        } else {
+            while (current != null && !path.Contains(current)) {
+                path_.Add(current);
+                current = current.parent;
+            }
         }
         path_.Reverse();
+
+        Debug.Assert(openlist_.Count < this.node_count);
+        Debug.Assert(closelist_.Count < this.node_count);
     }
 }
 }
