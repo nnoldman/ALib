@@ -2,10 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Diagnostics;
 
-namespace ALib {
 namespace AStar {
 internal class OpenNodeComparer : IComparer<Node> {
     int IComparer<Node>.Compare(Node x, Node y) {
@@ -24,20 +22,21 @@ public class Finder {
     private Node[,] mapdata_;
     private int width_ = 0;
     private int height_ = 0;
-    private SortedSet<Node> openlist_;
+    private HashSet<Node> openlist_;
     private HashSet<Node> closelist_;
+    private bool optimized = false;
 
     private Node goal_;
     private Node start_;
     private List<Node> path_;
 
-    public int node_count {
+    private int node_count {
         get {
             return width_ * height_;
         }
     }
 
-    public bool invlid {
+    public bool invalid {
         get {
             return mapdata_ != null;
         }
@@ -49,7 +48,7 @@ public class Finder {
         }
     }
 
-    public bool optimized = false;
+    public bool enableSlant = false;
 
 
     public bool SetMap(int[,] data) {
@@ -78,13 +77,17 @@ public class Finder {
             }
         }
 
-        openlist_ = new SortedSet<Node>(new OpenNodeComparer());
+        openlist_ = new HashSet<Node>();
         closelist_ = new HashSet<Node>();
         return true;
     }
 
     public bool IsBlock(int col, int row) {
         return mapdata_[row, col].state == (int)NodeFlag.Block;
+    }
+
+    public void SetState(int col, int row, NodeFlag flag) {
+        mapdata_[row, col].state = (int)flag;
     }
 
     bool InvalidIndex(int col, int row) {
@@ -160,7 +163,7 @@ public class Finder {
         public int g;
     }
 
-    static Point[] sNeigbhors = {
+    static Point[] sSlantNeigbhors = {
         new Point() {y = -1, x = -1, g = G1},
         new Point() {y = -1, x = 0, g = G0},
         new Point() {y = -1, x = 1, g = G1},
@@ -173,17 +176,26 @@ public class Finder {
         new Point() {y = 1, x = 1, g = G1},
     };
 
+    static Point[] sNormalNeigbhors = {
+        new Point() {y = -1, x = 0, g = G0},
+        new Point() {y = 0, x = -1, g = G0},
+        new Point() {y = 0, x = 1, g = G0 },
+        new Point() {y = 1, x = 0, g = G0},
+    };
+
     bool ProcessNeigbhors(Node current) {
 
         int parentx = current.x;
         int parenty = current.y;
 
-        for (int i = 0; i < 8; ++i) {
-            int x = parentx + sNeigbhors[i].x;
-            int y = parenty + sNeigbhors[i].y;
-            if (!InvalidIndex(x,y))
+        Point[] neigbhors = enableSlant ? sSlantNeigbhors : sNormalNeigbhors;
+
+        for (int i = 0; i < neigbhors.Length; ++i) {
+            int x = parentx + neigbhors[i].x;
+            int y = parenty + neigbhors[i].y;
+            if (!InvalidIndex(x, y))
                 continue;
-            Node node = GetNode(x,y);
+            Node node = GetNode(x, y);
             if (node.closed)
                 continue;
             if (node.opened)
@@ -195,7 +207,7 @@ public class Finder {
             }
 
             node.parent = current;
-            node.g = current.g + sNeigbhors[i].g;
+            node.g = current.g + neigbhors[i].g;
             node.h = GetH(node);
             node.SetCost();
             node.viststate = VistState.Opened;
@@ -216,7 +228,7 @@ public class Finder {
     Node GetBestFromOpenList() {
         Node ret = null;
         if (openlist_.Count > 0) {
-            ret = openlist_.Min;
+            ret = openlist_.Min();
             ret.viststate = VistState.Close;
             //Debug.Assert(!closelist_.Contains(ret));
             closelist_.Add(ret);
@@ -232,15 +244,16 @@ public class Finder {
         Node min_g_node = null;
         int minG = int.MaxValue;
         int inverseG = int.MaxValue;
+        Point[] neigbhors = enableSlant ? sSlantNeigbhors : sNormalNeigbhors;
 
-        for (int i = 0; i < 8; ++i) {
-            int x = parentx + sNeigbhors[i].x;
-            int y = parenty + sNeigbhors[i].y;
+        for (int i = 0; i < neigbhors.Length; ++i) {
+            int x = parentx + neigbhors[i].x;
+            int y = parenty + neigbhors[i].y;
             if (!InvalidIndex(x, y))
                 continue;
             Node node = GetNode(x, y);
-            if(((int)node.viststate & (int)VistState.Opened) > 0 && node.viststate != VistState.Optimized&&!node.blocked) {
-                inverseG = node.g + node.f+sNeigbhors[i].g;
+            if(((int)node.viststate & (int)VistState.Opened) > 0 && node.viststate != VistState.Optimized && !node.blocked) {
+                inverseG = node.g + node.f + neigbhors[i].g;
                 //;
                 if (inverseG < minG) {
                     min_g_node = node;
@@ -272,6 +285,5 @@ public class Finder {
         Debug.Assert(openlist_.Count < this.node_count);
         Debug.Assert(closelist_.Count < this.node_count);
     }
-}
 }
 }

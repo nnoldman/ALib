@@ -2,14 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
-namespace ALib {
 namespace AStar {
 public enum VistState {
     None,
-    Opened=1<<0,
-    Close=1<< 1 | Opened,
+    Opened = 1 << 0,
+    Close = 1 << 1 | Opened,
     Optimized = 1 << 2 | Close,
 }
 
@@ -18,13 +16,29 @@ public enum NodeFlag {
     Block = 1,
 }
 
-public class Node:IComparable {
-    public int x;
-    public int y;
-    public int state;
-    public int g;
-    public int h;
-    public int f;
+public class Node: IComparable {
+    public int customState;
+    internal int state;
+    public int x {
+        get;
+        internal set;
+    }
+    public int y {
+        get;
+        internal set;
+    }
+    public int g {
+        get;
+        internal set;
+    }
+    public int h {
+        get;
+        internal set;
+    }
+    public int f {
+        get;
+        internal set;
+    }
     public int index {
         get {
             return index_;
@@ -36,7 +50,7 @@ public class Node:IComparable {
 
     private int index_;
 
-    public VistState viststate = VistState.None;
+    internal VistState viststate = VistState.None;
 
     public bool closed {
         get {
@@ -46,7 +60,8 @@ public class Node:IComparable {
     }
     public bool opened {
         get {
-            return viststate.HasFlag(VistState.Opened);
+            //return viststate.HasFlag(VistState.Opened);
+            return ((int)viststate & (int)VistState.Opened) > 0;
         }
     }
 
@@ -56,7 +71,7 @@ public class Node:IComparable {
         }
     }
 
-    public Node parent;
+    internal Node parent;
 
     public void Clear() {
         g = 0;
@@ -75,7 +90,7 @@ public class Node:IComparable {
         return Is(obj.x, obj.y);
     }
 
-    public void SetCost() {
+    internal void SetCost() {
         f = g + h;
     }
 
@@ -95,6 +110,5 @@ public class Node:IComparable {
         else
             return 0;
     }
-}
 }
 }
