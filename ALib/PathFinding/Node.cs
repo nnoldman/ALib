@@ -18,7 +18,10 @@ public enum NodeFlag {
 
 public class Node: IComparable {
     public int customState;
-    internal int state;
+    public int state {
+        get;
+        internal set;
+    }
     public int x {
         get;
         internal set;

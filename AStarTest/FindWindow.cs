@@ -1,5 +1,4 @@
-﻿using ALib;
-using ALib.AStar;
+﻿using AStar;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -80,11 +79,11 @@ public partial class FindWindow : Panel {
 
     bool MapInvalid {
         get {
-            return mapdata_ != null;
+            return finder.invalid;
         }
     }
 
-    void SetMapState(int col,int row,int state) {
+    void SetMapState(int col, int row, int state) {
         mapdata_[row, col] = state;
     }
 
@@ -151,8 +150,8 @@ public partial class FindWindow : Panel {
         graph.FillRectangle(pen.Brush, col * cell_sizex, (row) * cell_sizey, cell_sizex - space_, cell_sizey - space_);
     }
 
-    void DrawString(int col, int row,  Pen pen,string text,int offsetx=0,int offsety=0) {
-        graph.DrawString(text, f_font_, pen.Brush, col * cell_sizex+ offsetx, (row) * cell_sizey+ offsety);
+    void DrawString(int col, int row,  Pen pen, string text, int offsetx = 0, int offsety = 0) {
+        graph.DrawString(text, f_font_, pen.Brush, col * cell_sizex + offsetx, (row) * cell_sizey + offsety);
     }
 
     bool GetPoint(int x, int y, ref Point2 ret) {
@@ -218,7 +217,7 @@ public partial class FindWindow : Panel {
 
         state = GetState(ret_.col, ret_.row);
         if (state == (int)Flag.StartPoint) {
-            SetMapState(ret_.col,ret_.row, (int)NodeFlag.Walkable);
+            SetMapState(ret_.col, ret_.row, (int)NodeFlag.Walkable);
         }
         start = new Point2(ret_.col, ret_.row);
         SetMapState(ret_.col, ret_.row, (int)Flag.StartPoint);

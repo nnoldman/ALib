@@ -42,6 +42,12 @@ public class Finder {
         }
     }
 
+    public Node[,] nodes {
+        get {
+            return mapdata_;
+        }
+    }
+
     public List<Node> path {
         get {
             return path_;
@@ -50,22 +56,13 @@ public class Finder {
 
     public bool enableSlant = false;
 
-
-    public bool SetMap(int[,] data) {
-        if (data == null)
+    public bool InitMap(int width, int height) {
+        width_ = width;
+        height_ = height;
+        if (height_ == 0 || width == 0)
             return false;
-
-        height_ = data.GetLength(0);
-        if (height_ == 0)
-            return false;
-
-        width_ = data.GetLength(1);
-        if (width_ == 0)
-            return false;
-
         mapdata_ = new Node[height_, width_];
         path_ = new List<Node>(width_ * height_);
-
         for (int i = 0; i < width_; ++i) {
             for (int j = 0; j < height_; ++j) {
                 var node = new Node();
@@ -73,29 +70,35 @@ public class Finder {
                 node.x = i;
                 node.y = j;
                 node.index = j * width_ + i;
-                node.state = data[j, i];
             }
         }
-
         openlist_ = new HashSet<Node>();
         closelist_ = new HashSet<Node>();
         return true;
     }
 
-    public bool IsBlock(int col, int row) {
-        return mapdata_[row, col].state == (int)NodeFlag.Block;
+    public bool IsBlock(int x, int y) {
+        return mapdata_[y, x].state == (int)NodeFlag.Block;
     }
 
-    public void SetState(int col, int row, NodeFlag flag) {
-        mapdata_[row, col].state = (int)flag;
+    public void SetState(int x, int y, NodeFlag flag) {
+        mapdata_[y, x].state = (int)flag;
     }
 
-    bool InvalidIndex(int col, int row) {
-        return col >= 0 && col < width_ && row >= 0 && row < height_;
+    public void SetCustomState(int x, int y, int state) {
+        mapdata_[y, x].customState = state;
     }
 
-    public Node GetNode(int col, int row) {
-        return mapdata_[row, col];
+    public int GetCustomState(int x, int y) {
+        return mapdata_[y, x].customState;
+    }
+
+    bool InvalidIndex(int x, int y) {
+        return x >= 0 && x < width_ && y >= 0 && y < height_;
+    }
+
+    public Node GetNode(int x, int y) {
+        return mapdata_[y, x];
     }
 
     public bool Find(int x0, int y0, int x1, int y1) {
