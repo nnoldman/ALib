@@ -84,16 +84,40 @@ public class Finder {
     public void SetState(int x, int y, NodeFlag flag) {
         mapdata_[y, x].state = (int)flag;
     }
-
-    public void SetCustomState(int x, int y, int state) {
-        mapdata_[y, x].customState = state;
+    static uint SetBitState(uint state, int index) {
+        state |= (1U << index);
+        return state;
+    }
+    static uint ClearBitState(uint state, int index) {
+        state &= (~(1U << index));
+        return state;
+    }
+    static bool GetBitState(uint state, int index) {
+        return (state & (1U << index)) > 0;
     }
 
-    public int GetCustomState(int x, int y) {
-        return mapdata_[y, x].customState;
+    public void ClearAllCustomState(int x, int y) {
+        mapdata_[y, x].customState = 0;
     }
 
-    bool InvalidIndex(int x, int y) {
+    public void SetCustomState(int x, int y, Flag flag) {
+        uint curState = (uint)mapdata_[y, x].customState;
+        curState = SetBitState(curState, (int)flag);
+        mapdata_[y, x].customState = (int)curState;
+    }
+
+    public void ClearCustomState(int x, int y, Flag flag) {
+        uint curState = (uint)mapdata_[y, x].customState;
+        curState = ClearBitState(curState, (int)flag);
+        mapdata_[y, x].customState = (int)curState;
+    }
+
+    public bool GetCustomState(int x, int y, Flag flag) {
+        uint curState = (uint)mapdata_[y, x].customState;
+        return GetBitState(curState, (int)flag);
+    }
+
+    public bool InvalidIndex(int x, int y) {
         return x >= 0 && x < width_ && y >= 0 && y < height_;
     }
 
